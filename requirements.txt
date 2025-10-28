@@ -3,4 +3,9 @@ qiskit-aer
 qiskit-ibm-runtime
 matplotlib
 numpy
+scipy
+rustworkx
 networkx
+jupyter
+ipykernel
+pylatexenc
