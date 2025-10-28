@@ -1,11 +1,27 @@
 # QAOA Implementation with Qiskit
 
 ## Overview
-This repository contains an implementation of the Quantum Approximate Optimisation Algorithm (QAOA) using IBM Qiskit.
-The project demonstrates how QAOA can be applied to combinatorial optimisation problems, focusing on the Max-Cut problem as a case study.
-It is designed to be both educational and extendable for researchers or engineers exploring hybrid quantum-classical algorithms.
+This repository reimplements the Quantum Approximate Optimisation Algorithm (QAOA) using Qiskit and the official IBM Qiskit QAOA tutorial.
+The goal of the project is to understand every step of the Quantum Approximate Optimization Algorithm (QAOA) and to explore modifications and variations of the QAOA as outlined in the personal extensions section.
 
----
+The tutorial results are reproduced on local simulators, with the aim of ensuring a deep understanding of how each Qiskit component interacts (e.g SparsePauliOp, QAOAAnsatz, EstimatorV2, and SamplerV2).
+
+### Motivation
+This project serves as a practical learning exercise to:
+- Strengthen understanding of quantum optimization workflows.
+- Gain experience using Qiskit Runtime primitives and local simulators.
+- Build a foundation for future quantum algorithm research and hardware experimentation.
+
+## Personal Extensions
+- Experimenting with custom graph structures (random, dense, and weighted graphs).
+
+- Running QAOA on IBM Quantum hardware via real backends and comparing results with simulators.
+
+- Adding noise models and error mitigation to explore realistic performance.
+
+- Extending to larger graphs (e.g., 20–100 qubits) to study scalability.
+
+- Implementing custom optimisation loops and visualizing convergence metrics.
 
 ## Key Features
 - End-to-end QAOA pipeline using Qiskit
@@ -14,7 +30,7 @@ It is designed to be both educational and extendable for researchers or engineer
 - Integration with classical optimisers (e.g COBYLA, SPSA) 
 - Visualisation of results and circuit structure 
 - Modular code that can be adapted for other optimisation problems
-
+- Understanding of how variations to the QAOA alters performance
 
 ---
 
@@ -43,14 +59,9 @@ To execute on a real backend:
 
 ---
 
-## Example Results
-
-For a 4-node graph, QAOA finds the optimal Max-Cut configuration consistent with the classical solution.   
-The code also reports the cut value and the bitstring corresponding to the best measurement outcome.
-
-# To-do (ADD EXAMPLE PLOT HERE)
-
-
 ## Author
 **Jamie Holdcroft**
+
+IBM QAOO Qiskit Tutorial: [https://quantum.cloud.ibm.com/docs/en/tutorials/quantum-approximate-optimization-algorithm](https://quantum.cloud.ibm.com/docs/en/tutorials/quantum-approximate-optimization-algorithm)
+
 GitHub: [https://github.com/JamieHoldcroft](https://github.com/JamieHoldcroft)
