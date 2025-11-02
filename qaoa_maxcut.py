@@ -21,20 +21,29 @@ gamma_grid = np.pi / 3 * np.array([0.2, 0.3, 0.4, 0.5, 0.6, 0.8])  # scaled for 
 
 
 
-def generate_graph(n):
-    graph = rx.PyGraph()
-    graph.add_nodes_from(np.arange(0, n, 1))
-    edge_list = [
-    # outer 5 cycle
-    (0, 1, 1.0), (1, 2, 1.0), (2, 3, 1.0), (3, 4, 1.0), (4, 0, 1.0),
-    # inner 5 point star
-    (5, 7, 1.0), (7, 9, 1.0), (9, 6, 1.0), (6, 8, 1.0), (8, 5, 1.0),
-    # spokes
-    (0, 5, 1.0), (1, 6, 1.0), (2, 7, 1.0), (3, 8, 1.0), (4, 9, 1.0),
-    ]
-    graph.add_edges_from(edge_list)
-    draw_graph(graph, node_size=600, with_labels=True)
-    return graph
+def generate_graph(n: int, k: int = 2, weight: float = 1.0, draw: bool = True) -> rx.PyGraph:
+    if n % 2 != 0:
+        raise ValueError("n must be even (n = 2 * outer_cycle_size).")
+    m = n // 2
+    if not (1 <= k < m):
+        raise ValueError(f"k must satisfy 1 <= k < {m} (got k={k}).")
+
+    G = rx.PyGraph()
+    G.add_nodes_from(range(n))
+
+    rng = np.random.default_rng(0)
+    outer = [(i, (i+1)%m, 0.5 + rng.random()*1.0) for i in range(m)]
+
+    inner = [ (m + i, m + ((i + k) % m), weight) for i in range(m) ]
+
+    spokes = [ (i, m + i, weight) for i in range(m) ]
+
+    G.add_edges_from(outer + inner + spokes)
+
+    if draw:
+        draw_graph(G, node_size=600, with_labels=True)
+
+    return G
 
 def cmax_ortools_exact(rx_graph):
     n = len(list(rx_graph.nodes()))
@@ -65,7 +74,7 @@ def build_max_cut_paulis(graph: rx.PyGraph) -> list[tuple[str, float]]:
 def build_cost_and_circuit(graph, n, reps=2):
     max_cut_paulis = build_max_cut_paulis(graph)
     cost_hamiltonian = SparsePauliOp.from_sparse_list(max_cut_paulis, n)
-    print("Cost Function Hamiltonian:\n", cost_hamiltonian)
+    # print("Cost Function Hamiltonian:\n", cost_hamiltonian)
 
     circuit = QAOAAnsatz(cost_operator=cost_hamiltonian, reps=reps)
     circuit.measure_all()
@@ -132,19 +141,21 @@ def plot_convergence(trace):
     plt.xlabel("Iteration")
     plt.ylabel("Cost")
     plt.show()
-
-
-# -----------------------------
-# Main flow (same behavior, just function calls)
-# -----------------------------
+def evaluate_sample(x: Sequence[int], graph: rx.PyGraph) -> float:
+    assert len(x) == len(
+        list(graph.nodes())
+    ), "The length of x must coincide with the number of nodes in the graph."
+    return sum(
+        x[u] * (1 - x[v]) + x[v] * (1 - x[u])
+        for u, v in list(graph.edge_list())
+    )
 
 def main():
-    # Problem
-    n = 10
+    n = 20
     graph = generate_graph(n)
-    # c_max = cmax_ortools_exact(graph)
+    c_max = cmax_ortools_exact(graph)
     print("C_MAX")
-    # print(c_max)
+    print(c_max)
 
     # Build cost + circuit
     cost_hamiltonian, circuit = build_cost_and_circuit(graph, n, reps=2)
@@ -166,17 +177,20 @@ def main():
     print("\nOptimization result:\n", result)
 
     # Plot convergence
-    plot_convergence(objective_func_vals)
+    # plot_convergence(objective_func_vals)
 
     # Sample final circuit
     optimized_circuit = candidate_circuit.assign_parameters(result.x)
     final_distribution_int = sample_distribution(optimized_circuit, backend, shots=10_000)
-    print("\nFinal distribution:\n", final_distribution_int)
+    # print("\nFinal distribution:\n", final_distribution_int)
 
     # Most likely bitstring
     most_likely_bitstring = most_likely_bitstring_from_dist(final_distribution_int, len(graph))
     print("\nMost likely bitstring:", most_likely_bitstring)
     
+    
+    cut_value = evaluate_sample(most_likely_bitstring, graph)
+    print("The value of the cut is:", cut_value)
 
 if __name__ == "__main__":
     main()
