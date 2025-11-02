@@ -14,19 +14,26 @@ from qiskit_ibm_runtime import EstimatorV2 as Estimator, SamplerV2 as Sampler
 from qiskit_aer import AerSimulator
 from ortools.sat.python import cp_model
 
+# Grid search initial param values
+depths = [1, 2, 3, 4, 5]
+beta_grid = np.array([np.pi/12, np.pi/8, np.pi/6, np.pi/4, 3*np.pi/8, np.pi/2])
+gamma_grid = np.pi / 3 * np.array([0.2, 0.3, 0.4, 0.5, 0.6, 0.8])  # scaled for cubic graph
+
+
+
 def generate_graph(n):
     graph = rx.PyGraph()
     graph.add_nodes_from(np.arange(0, n, 1))
     edge_list = [
-        (0, 1, 1.0),
-        (0, 2, 1.0),
-        (0, 4, 1.0),
-        (1, 2, 1.0),
-        (2, 3, 1.0),
-        (3, 4, 1.0),
+    # outer 5 cycle
+    (0, 1, 1.0), (1, 2, 1.0), (2, 3, 1.0), (3, 4, 1.0), (4, 0, 1.0),
+    # inner 5 point star
+    (5, 7, 1.0), (7, 9, 1.0), (9, 6, 1.0), (6, 8, 1.0), (8, 5, 1.0),
+    # spokes
+    (0, 5, 1.0), (1, 6, 1.0), (2, 7, 1.0), (3, 8, 1.0), (4, 9, 1.0),
     ]
     graph.add_edges_from(edge_list)
-    # draw_graph(graph, node_size=600, with_labels=True)
+    draw_graph(graph, node_size=600, with_labels=True)
     return graph
 
 def cmax_ortools_exact(rx_graph):
@@ -133,11 +140,11 @@ def plot_convergence(trace):
 
 def main():
     # Problem
-    n = 5
+    n = 10
     graph = generate_graph(n)
-    c_max = cmax_ortools_exact(graph)
+    # c_max = cmax_ortools_exact(graph)
     print("C_MAX")
-    print(c_max)
+    # print(c_max)
 
     # Build cost + circuit
     cost_hamiltonian, circuit = build_cost_and_circuit(graph, n, reps=2)
@@ -169,7 +176,7 @@ def main():
     # Most likely bitstring
     most_likely_bitstring = most_likely_bitstring_from_dist(final_distribution_int, len(graph))
     print("\nMost likely bitstring:", most_likely_bitstring)
-
+    
 
 if __name__ == "__main__":
     main()
