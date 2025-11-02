@@ -14,11 +14,6 @@ from qiskit_ibm_runtime import EstimatorV2 as Estimator, SamplerV2 as Sampler
 from qiskit_aer import AerSimulator
 from ortools.sat.python import cp_model
 
-# Grid search initial param values
-depths = [1, 2, 3, 4, 5]
-beta_grid = np.array([np.pi/12, np.pi/8, np.pi/6, np.pi/4, 3*np.pi/8, np.pi/2])
-gamma_grid = np.pi / 3 * np.array([0.2, 0.3, 0.4, 0.5, 0.6, 0.8])  # scaled for cubic graph
-
 
 
 def generate_graph(n: int, k: int = 2, weight: float = 1.0, draw: bool = True) -> rx.PyGraph:
@@ -195,39 +190,43 @@ def max_weighted_degree(graph: rx.PyGraph) -> float:
         ),
         default=1.0,
     )
+
+
+
 def main():
-    n = 20
-    graph = generate_graph(n)
-    
-    Delta_w = max_weighted_degree(graph)
-    
-    number_of_gammas = 6
-    number_of_betas = 6
-    number_of_depths = 3
 
-    initial_gammas = [0.1/Delta_w + i*(1.5/Delta_w - 0.1/Delta_w)/(number_of_gammas-1)
-                    for i in range(number_of_gammas)]
+    num_of_zooms = 5
+    # Grid search initial param values
+    depths = [2, 3, 4]
+    initial_betas = np.array([np.pi/12, np.pi/8, np.pi/6, np.pi/4, 3*np.pi/8, np.pi/2])
+    initial_gammas = np.pi / 3 * np.array([0.2, 0.3, 0.4, 0.5, 0.6, 0.8])  # scaled for cubic graph
 
-    initial_betas = [np.pi/12 + i*(np.pi/2 - np.pi/12)/(number_of_betas-1)
-                    for i in range(number_of_betas)]
+    for num in range(num_of_zooms):
 
-    depths = [i+2 for i in range(number_of_depths)]
-    c_max = cmax_ortools_exact(graph)
-    
-    num_of_runs = 5
-    print(f"C_MAX: {c_max}")
-    print(c_max)
-    
-    for initial_gamma in initial_gammas:
-        for initial_beta in initial_betas:
-            for depth in depths:
-                runs = []
-                for i in range(num_of_runs):
+        num_combinations = len(initial_betas) * len(initial_gammas) * len(depths)
+
+        for comb in range(num_combinations):
+
+            results = []
+            n = 20
+            graph = generate_graph(n)
                     
-                    runs.append(run_qaoa(n, graph, depth, initial_gamma, initial_beta)/c_max)
-                print(f"=== β: {initial_beta}, γ: {initial_gamma}, depth: {depth} ===")
-                print("Results:", runs)
-                print("Average:", sum(runs)/len(runs))
+            c_max = cmax_ortools_exact(graph)
+            
+            num_of_runs = 5
+            print(f"C_MAX: {c_max}")
+            print(c_max)
+            
+            for initial_gamma in initial_gammas:
+                for initial_beta in initial_betas:
+                    for depth in depths:
+                        runs = []
+                        for i in range(num_of_runs):
+                            
+                            runs.append(run_qaoa(n, graph, depth, initial_gamma, initial_beta)/c_max)
+                        print(f"=== β: {initial_beta}, γ: {initial_gamma}, depth: {depth} ===")
+                        print("Results:", runs)
+                        print("Average:", sum(runs)/len(runs))
 
     
     
