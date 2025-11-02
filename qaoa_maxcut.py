@@ -150,15 +150,14 @@ def evaluate_sample(x: Sequence[int], graph: rx.PyGraph) -> float:
         for u, v in list(graph.edge_list())
     )
 
-def main():
-    n = 20
-    graph = generate_graph(n)
+def run_qaoa(n, graph, depth, initial_gamma, initial_beta):
+
     c_max = cmax_ortools_exact(graph)
     print("C_MAX")
     print(c_max)
 
     # Build cost + circuit
-    cost_hamiltonian, circuit = build_cost_and_circuit(graph, n, reps=2)
+    cost_hamiltonian, circuit = build_cost_and_circuit(graph, n, reps=depth)
 
     # Backend
     backend = AerSimulator()
@@ -168,8 +167,7 @@ def main():
     candidate_circuit = optimize_for_backend(circuit, backend)
 
     # Initial params (same as yours)
-    initial_gamma = np.pi
-    initial_beta = np.pi / 2
+
     init_params = [initial_beta, initial_beta, initial_gamma, initial_gamma]
 
     # Optimize
@@ -192,5 +190,14 @@ def main():
     cut_value = evaluate_sample(most_likely_bitstring, graph)
     print("The value of the cut is:", cut_value)
 
+def main():
+    n = 20
+    graph = generate_graph(n)
+    
+    initial_gamma = np.pi /2
+    initial_beta = np.pi / 2
+    depth = 2
+    
+    run_qaoa(n, graph, depth, initial_gamma, initial_beta)
 if __name__ == "__main__":
     main()
