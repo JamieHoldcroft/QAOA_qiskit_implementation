@@ -200,33 +200,50 @@ def main():
     depths = [2, 3, 4]
     initial_betas = np.array([np.pi/12, np.pi/8, np.pi/6, np.pi/4, 3*np.pi/8, np.pi/2])
     initial_gammas = np.pi / 3 * np.array([0.2, 0.3, 0.4, 0.5, 0.6, 0.8])  # scaled for cubic graph
+    num_combinations = len(initial_betas) * len(initial_gammas) * len(depths)
 
-    for num in range(num_of_zooms):
+    n = 20
+    graph = generate_graph(n)          
+    c_max = cmax_ortools_exact(graph)
+    print(f"C_MAX: {c_max}")
 
-        num_combinations = len(initial_betas) * len(initial_gammas) * len(depths)
 
-        for comb in range(num_combinations):
+    for zoom_idx in range(num_of_zooms):
+        print(f" Zoom Level {zoom_idx + 1}")
 
-            results = []
-            n = 20
-            graph = generate_graph(n)
-                    
-            c_max = cmax_ortools_exact(graph)
+
+        best_acc = -1.0
+        best_params = None
+
             
-            num_of_runs = 5
-            print(f"C_MAX: {c_max}")
-            print(c_max)
+        for initial_gamma in initial_gammas:
+            for initial_beta in initial_betas:
+                for depth in depths:
+                    runs = []
+                    num_of_runs = 3
+                    for _ in range(num_of_runs):
+                        val = run_qaoa(n, graph, depth, initial_gamma, initial_beta)/c_max
+                        runs.append(val)
+                        if val > best_acc:
+                            best_acc = val
+                            best_params = (initial_beta, initial_gamma, depth)
             
-            for initial_gamma in initial_gammas:
-                for initial_beta in initial_betas:
-                    for depth in depths:
-                        runs = []
-                        for i in range(num_of_runs):
-                            
-                            runs.append(run_qaoa(n, graph, depth, initial_gamma, initial_beta)/c_max)
-                        print(f"=== β: {initial_beta}, γ: {initial_gamma}, depth: {depth} ===")
-                        print("Results:", runs)
-                        print("Average:", sum(runs)/len(runs))
+        best_beta, best_gamma, best_depth = best_params
+
+        # ---- Logarithmic zoom around the best β, γ ----
+        beta_min = max(best_beta * 0.5, 1e-3)
+        beta_max = min(best_beta * 1.5, np.pi/2)
+        gamma_min = max(best_gamma * 0.5, 1e-3)
+        gamma_max = min(best_gamma * 1.5, np.pi)
+        
+        # refine 6×6 grid around the best region (log spacing)
+        initial_betas = np.geomspace(beta_min, beta_max, 6)
+        initial_gammas = np.geomspace(gamma_min, gamma_max, 6)
+        depths = [best_depth]  # lock depth for subsequent zooms
+
+        print(f"Next β range: {initial_betas}")
+        print(f"Next γ range: {initial_gammas}")
+        print(f"Depth locked to {best_depth}")
 
     
     
