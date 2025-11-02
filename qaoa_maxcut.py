@@ -152,27 +152,25 @@ def evaluate_sample(x: Sequence[int], graph: rx.PyGraph) -> float:
 
 def run_qaoa(n, graph, depth, initial_gamma, initial_beta):
 
-    c_max = cmax_ortools_exact(graph)
-    print("C_MAX")
-    print(c_max)
+
 
     # Build cost + circuit
     cost_hamiltonian, circuit = build_cost_and_circuit(graph, n, reps=depth)
 
     # Backend
     backend = AerSimulator()
-    print(f"Using backend: {backend}")
+    # print(f"Using backend: {backend}")
 
     # Transpile for backend
     candidate_circuit = optimize_for_backend(circuit, backend)
 
     # Initial params (same as yours)
 
-    init_params = [initial_beta, initial_beta, initial_gamma, initial_gamma]
+    init_params = [initial_beta] * depth + [initial_gamma] * depth
 
     # Optimize
     result = run_optimization(candidate_circuit, cost_hamiltonian, backend, init_params)
-    print("\nOptimization result:\n", result)
+    # print("\nOptimization result:\n", result)
 
     # Plot convergence
     # plot_convergence(objective_func_vals)
@@ -184,20 +182,60 @@ def run_qaoa(n, graph, depth, initial_gamma, initial_beta):
 
     # Most likely bitstring
     most_likely_bitstring = most_likely_bitstring_from_dist(final_distribution_int, len(graph))
-    print("\nMost likely bitstring:", most_likely_bitstring)
+    # print("\nMost likely bitstring:", most_likely_bitstring)
     
     
     cut_value = evaluate_sample(most_likely_bitstring, graph)
-    print("The value of the cut is:", cut_value)
-
+    return cut_value
+def max_weighted_degree(graph: rx.PyGraph) -> float:
+    return max(
+        (
+            sum(abs(float(graph.get_edge_data(i, j))) for j in graph.neighbors(i))
+            for i in graph.node_indices()
+        ),
+        default=1.0,
+    )
 def main():
     n = 20
     graph = generate_graph(n)
     
-    initial_gamma = np.pi /2
-    initial_beta = np.pi / 2
-    depth = 2
+    Delta_w = max_weighted_degree(graph)
     
-    run_qaoa(n, graph, depth, initial_gamma, initial_beta)
+    number_of_gammas = 6
+    number_of_betas = 6
+    number_of_depths = 3
+
+    initial_gammas = [0.1/Delta_w + i*(1.5/Delta_w - 0.1/Delta_w)/(number_of_gammas-1)
+                    for i in range(number_of_gammas)]
+
+    initial_betas = [np.pi/12 + i*(np.pi/2 - np.pi/12)/(number_of_betas-1)
+                    for i in range(number_of_betas)]
+
+    depths = [i+2 for i in range(number_of_depths)]
+    c_max = cmax_ortools_exact(graph)
+    
+    num_of_runs = 5
+    print(f"C_MAX: {c_max}")
+    print(c_max)
+    
+    for initial_gamma in initial_gammas:
+        for initial_beta in initial_betas:
+            for depth in depths:
+                runs = []
+                for i in range(num_of_runs):
+                    
+                    runs.append(run_qaoa(n, graph, depth, initial_gamma, initial_beta)/c_max)
+                print(f"=== β: {initial_beta}, γ: {initial_gamma}, depth: {depth} ===")
+                print("Results:", runs)
+                print("Average:", sum(runs)/len(runs))
+
+    
+    
+    
+    
+    
+    
+    
+   
 if __name__ == "__main__":
     main()
